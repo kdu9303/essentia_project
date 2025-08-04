@@ -1,0 +1,14 @@
+[project]
+name = "essentia-project"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "essentia>=2.1b6.dev1177",
+    "essentia-tensorflow>=2.1b6.dev1177",
+    "matplotlib>=3.7.5",
+    "pandas>=2.0.3",
+    "polars[pyarrow]>=1.8.2",
+    "rich>=14.1.0",
+]
