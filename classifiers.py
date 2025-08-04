@@ -12,24 +12,6 @@ from essentia.standard import (
 )
 from feature_extractors import FeatureExtractor
 
-"""
-추가해야할 model
-Classifier  Arousal  Valence  Depth
-
-Sound
-    Average loudness
-    Dissonance
-    Dynamic complexity
-    Electronic
-    Instrumental
-    Speed (BPM)
-    Tonal
-
-Instrumentation
-    timbre
-    Tonal
-"""
-
 
 class AudioClassifier(FeatureExtractor):
     """transfer learning classifiers"""

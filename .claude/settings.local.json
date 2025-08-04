@@ -5,7 +5,12 @@
       "mcp__serena__replace_regex",
       "mcp__serena__replace_symbol_body",
       "mcp__serena__find_symbol",
-      "WebFetch(domain:essentia.upf.edu)"
+      "WebFetch(domain:essentia.upf.edu)",
+      "mcp__serena__list_dir",
+      "Bash(python3:*)",
+      "Bash(echo $LANG)",
+      "Bash(echo $LC_ALL)",
+      "Bash(rm:*)"
     ],
     "deny": []
   }
