@@ -13,7 +13,13 @@
       "Bash(rm:*)",
       "Bash(git branch:*)",
       "Bash(git push:*)",
-      "Bash(gh repo edit:*)"
+      "Bash(gh repo edit:*)",
+      "mcp__serena__check_onboarding_performed",
+      "mcp__serena__onboarding",
+      "mcp__serena__get_symbols_overview",
+      "mcp__serena__think_about_collected_information",
+      "mcp__serena__write_memory",
+      "mcp__serena__think_about_whether_you_are_done"
     ],
     "deny": []
   }

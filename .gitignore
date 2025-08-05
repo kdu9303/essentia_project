@@ -202,6 +202,10 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
+# cache files
+*cache*/
+.cache*/
+
 # large files
 *.pb
 audio/
@@ -209,3 +213,4 @@ embeddings/
 output/
 *.mp3
 *.wav
+*.pkl
