@@ -2,7 +2,7 @@
 import os
 import json
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 from essentia.standard import (
     MonoLoader,  # type: ignore
     TensorflowPredictVGGish,  # type: ignore
@@ -49,7 +49,7 @@ class AudioClassifier(FeatureExtractor):
     def _select_embeddings(self, model_name: str) -> Any:
         """
         모델명을 기반으로 임베딩 선택
-        :param algorithm_name: 임베딩 알고리즘 이름
+        :param model_name: 임베딩 알고리즘 이름
         :return: 선택된 임베딩
         """
         if "audioset-vggish-3" in model_name:
@@ -390,11 +390,11 @@ class AudioClassifier(FeatureExtractor):
         총 불협화도를 추정합니다. 0(완전 협화)부터 1(완전 불협화) 범위의 값을 출력합니다.
         """
         from essentia.standard import (
-            Windowing, # type: ignore
-            Spectrum, # type: ignore
-            SpectralPeaks, # type: ignore
-            FrameGenerator, # type: ignore
-            Dissonance, # type: ignore
+            Windowing,  # type: ignore
+            Spectrum,  # type: ignore
+            SpectralPeaks,  # type: ignore
+            FrameGenerator,  # type: ignore
+            Dissonance,  # type: ignore
         )
 
         audio = MonoLoader(filename=self.audio_file, sampleRate=44100)()
@@ -428,3 +428,43 @@ class AudioClassifier(FeatureExtractor):
                 dissonance = classifier(frequencies, magnitudes)
 
         return {"dissonance": dissonance}
+
+    def predict_all(
+        self, exclude_methods: Optional[List[str]] = None
+    ) -> Dict[str, float]:
+        """
+        모든 predict 함수의 결과를 하나의 dictionary로 병합
+
+        :param exclude_methods: 제외할 메서드 이름 리스트 (예: ['predict_tempo', 'predict_dissonance'])
+        :return: 모든 예측 결과가 병합된 딕셔너리
+        """
+
+        # 모든 predict_ 메서드 자동 검색
+        predict_methods = [
+            method
+            for method in dir(self)
+            if method.startswith("predict_") and callable(getattr(self, method))
+        ]
+
+        # predict_all 자신은 제외
+        predict_methods = [m for m in predict_methods if m != "predict_all"]
+
+        # 제외할 메서드 필터링
+        if exclude_methods:
+            predict_methods = [m for m in predict_methods if m not in exclude_methods]
+
+        results = {}
+        total_methods = len(predict_methods)
+
+        for i, method_name in enumerate(predict_methods, 1):
+            try:
+                print(f"[{i}/{total_methods}] 실행 중: {method_name}")
+                method = getattr(self, method_name)
+                result = method()
+                results.update(result)  # 딕셔너리 병합
+            except Exception as e:
+                print(f"{method_name} 실행 실패: {e}")
+                continue
+
+        print(f"총 {len(results)}개 예측 결과 생성 완료")
+        return results
