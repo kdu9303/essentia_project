@@ -206,3 +206,6 @@ __marimo__/
 *.pb
 audio/
 embeddings/
+output/
+*.mp3
+*.wav

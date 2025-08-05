@@ -10,7 +10,10 @@
       "Bash(python3:*)",
       "Bash(echo $LANG)",
       "Bash(echo $LC_ALL)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(git branch:*)",
+      "Bash(git push:*)",
+      "Bash(gh repo edit:*)"
     ],
     "deny": []
   }
