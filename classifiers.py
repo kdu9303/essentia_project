@@ -110,6 +110,9 @@ class AudioClassifier(FeatureExtractor):
         """
         model_path = str(self.models_dir / json_file)
 
+        if not os.path.exists(model_path):
+            raise FileNotFoundError(f"메타데이터 파일을 찾을 수 없습니다: {model_path}")
+
         with open(model_path, "r") as f:
             return json.load(f)
 

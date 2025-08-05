@@ -214,3 +214,4 @@ output/
 *.mp3
 *.wav
 *.pkl
+*.csv

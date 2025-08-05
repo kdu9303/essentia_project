@@ -9,7 +9,6 @@ dependencies = [
     "essentia-tensorflow>=2.1b6.dev1177",
     "ffmpeg-python>=0.2.0",
     "matplotlib>=3.7.5",
-    "pandas>=2.0.3",
     "polars[pyarrow]>=1.8.2",
     "rich>=14.1.0",
 ]

@@ -115,7 +115,8 @@ class FeatureExtractor:
 
         try:
             model = TensorflowPredictMusiCNN(
-                graphFilename="embeddings/msd-musicnn-1.pb", output="model/dense/BiasAdd"
+                graphFilename="embeddings/msd-musicnn-1.pb",
+                output="model/dense/BiasAdd",
             )
             return model(self.audio)
         except Exception as e:
