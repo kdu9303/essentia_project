@@ -2,6 +2,12 @@ import os
 from pathlib import Path
 from typing import List, Union, Optional
 
+def chunk_list(data: List, chunk_size: int) -> List[List]:
+    """
+    리스트를 청크 단위로 분할하는 함수
+    """
+    return [data[i:i + chunk_size] for i in range(0, len(data), chunk_size)]
+
 
 def get_audio_files(
     directory_path: Union[str, Path],
@@ -39,7 +45,8 @@ def get_audio_files(
                 audio_files.append(f"{directory_path}/{file_path.name}")
             else:
                 # 전체 경로로 반환
-                audio_files.append(str(file_path))
+                file_name = str(Path(file_path).name)
+                audio_files.append(file_name)
 
     return audio_files
 
@@ -72,7 +79,7 @@ def cut_audio_file(
 
     end_time = start_time + duration
     output_filename = (
-        f"{output_dir}/{file_name}__{start_time}-{end_time}sec.{extention_type}"
+        f"{output_dir}/{file_name}__{end_time}sec.{extention_type}"
     )
 
     # 지정된 구간 자르기
@@ -88,15 +95,12 @@ def cut_audio_file(
 
 
 if __name__ == "__main__":
-    audio_files = get_audio_files("audio/", is_path_form=True, extensions=[".mp3"])
-    output_dir = "output/"
-    
-    for audio in audio_files:
-        print(f"현재 Process 중인 파일: {audio}")
+    audio_files = get_audio_files("output_30sec/",extensions=[".mp3"])
 
-        cut_audio_file(
-            input_file=audio,
-            output_dir=output_dir,
-            start_time=0,
-            duration=30,
-        )
+    print(f"총 {len(audio_files)}개의 오디오 파일을 찾았습니다.") 
+    # output_dir = "output/"
+    
+    # for audio in audio_files[:5]:
+    #     print(f"현재 Process 중인 파일: {audio}")
+    
+    
