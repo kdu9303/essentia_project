@@ -11,4 +11,5 @@ dependencies = [
     "matplotlib>=3.7.5",
     "polars[pyarrow]>=1.8.2",
     "rich>=14.1.0",
+    "superclaude>=3.0.0.2",
 ]

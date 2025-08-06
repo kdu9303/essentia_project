@@ -5,7 +5,6 @@ from rich import print
 from typing import List, Dict, Union
 from concurrent.futures import ProcessPoolExecutor, as_completed
 import unicodedata
-import gc
 from classifiers import AudioClassifier
 from utils import get_audio_files, cut_audio_file, chunk_list
 from sys_utils import (
@@ -149,19 +148,25 @@ def process_audio_analysis(
     return results
 
 
+def preprocess_audio_files():
+    audio_files: List = get_audio_files(
+            directory_path="audio/", is_path_form=True, extensions=[".mp3"]
+        )
+
+    # 오디오 파일 자르기 (전처리)
+    process_audio_chunk(audio_files=audio_files, output_dir="audio_45sec/", duration=45)
+
+
 def main():
     # 시그널 핸들러 설정
     setup_signal_handlers()
 
     try:
         audio_files: List = get_audio_files(
-            "audio_30sec/", is_path_form=True, extensions=[".mp3"]
+            "audio_45sec/", is_path_form=True, extensions=[".mp3"]
         )
 
-        # 오디오 파일 자르기 (전처리)
-        # process_audio_chunk(audio_files, output_dir="audio_30sec/", duration=30)
-
-        csv_file_path = "output/audio_analysis_30sec_results.csv"
+        csv_file_path = "output/audio_analysis_45sec_results.csv"
 
         # output 디렉토리가 없으면 생성
         output_dir = Path(csv_file_path).parent
@@ -178,7 +183,7 @@ def main():
             is_first_chunk = True
 
         # 청크 나누기
-        chunk_size = 100
+        chunk_size = 50
         file_chunks = chunk_list(audio_files, chunk_size)
         total_chunks = len(file_chunks)
 
@@ -258,9 +263,6 @@ def main():
                 else:
                     print(f"청크 {chunk_idx + 1}에서 분석 결과가 없습니다.")
                 
-                # 메모리 정리 - 청크 처리 완료 후 가비지 컬렉션 실행
-                gc.collect()
-                print(f"청크 {chunk_idx + 1} 메모리 정리 완료")
 
             except KeyboardInterrupt:
                 print("\n프로그램이 사용자에 의해 중단되었습니다.")
@@ -269,8 +271,6 @@ def main():
             except Exception as e:
                 print(f"청크 {chunk_idx + 1} 처리 중 오류 발생: {e}")
                 print("다음 청크로 계속 진행합니다...")
-                # 예외 발생 시에도 메모리 정리
-                gc.collect()
                 # continue
 
         # 최종 결과 확인
@@ -303,4 +303,5 @@ def main():
 
 
 if __name__ == "__main__":
+    # preprocess_audio_files()
     main()
