@@ -1,7 +1,7 @@
 # Essentia Audio Analysis Project
 
 ## 프로젝트 개요
-TensorFlow 모델을 활용한 음악 자동 태깅, 분류 및 임베딩 추출에 중점을 둔 Essentia 오디오 분석 프로젝트입니다.
+TensorFlow 모델을 활용한 음악 자동 태깅, 분류 및 임베딩 추출에 중점을 둔 Essentia 오디오 분석 프로젝트입니다. Essentia의 TensorFlow 통합을 사용하여 오디오 특징을 분석하고 음악적 특성에 대한 예측을 수행합니다.
 
 ## 주요 기능
 - **자동 태깅**: MusiCNN 모델을 사용한 음악 태그 자동 생성
@@ -9,20 +9,59 @@ TensorFlow 모델을 활용한 음악 자동 태깅, 분류 및 임베딩 추출
 - **임베딩 추출**: 다운스트림 작업을 위한 오디오 특징 벡터 추출
 
 ## 환경 요구사항
-- Python ≥3.8
-- 주요 의존성: essentia, essentia-tensorflow, matplotlib
-- 패키지 관리자: uv
+- **Python**: ≥3.8 required
+- **패키지 관리자**: `uv` (uv.lock 파일 포함)
+- **핵심 의존성**:
+  - `essentia>=2.1b6.dev1177` 및 `essentia-tensorflow>=2.1b6.dev1177` (핵심 오디오 분석)
+  - `matplotlib>=3.7.5` (시각화)
+  - `pandas>=2.0.3` (데이터 처리)
+  - `polars[pyarrow]>=1.8.2` (고성능 데이터 처리)
+  - `rich>=14.1.0` (CLI 출력)
+  - `ffmpeg-python>=0.2.0` (오디오 처리)
 
-## 사용법
+## 설치 및 실행
 ```bash
-uv sync
-
-uv run main.py
+# 환경 설정
+uv sync                    # 의존성 설치
+uv run main.py            # 메인 스크립트 실행
+python main.py            # 직접 실행 (가상환경 내)
 ```
 
-## 모델
-- `models/` 디렉토리에 사전 훈련된 TensorFlow 모델 포함
-- MusiCNN 및 VGGish 기반의 다양한 분석 모델 제공
+## 프로젝트 구조
+
+- `models/`: 다양한 오디오 분석 작업을 위한 사전 훈련된 TensorFlow 모델 (22개 JSON 파일)
+  - 무드 분류: `mood_happy`, `mood_sad`, `mood_relaxed`, `mood_party` 등
+  - 오디오 특성: `danceability`, `voice_instrumental`, `gender`, `timbre`
+  - 음악 분석: `msd-musicnn-1`, `moods_mirex`, `mtg_jamendo_moodtheme`
+- `main.py`: 오디오 처리 파이프라인이 포함된 메인 실행 스크립트
+- `classifiers.py`: 25개 이상의 예측 메소드를 가진 AudioClassifier 클래스
+- `utils.py`: 오디오 파일 처리 유틸리티 (로딩, 커팅)
+- `feature_extractors.py`: 오디오 특징 추출을 위한 FeatureExtractor 클래스
+
+## 핵심 아키텍처
+
+**AudioClassifier**: 전문적인 예측 메소드를 가진 중앙 분류 클래스:
+- 모델 관리: 자동 다운로드 및 메타데이터 처리
+- 25개 이상의 예측 메소드로 감정, 음악 특성, 오디오 특징 커버
+- 공통 예측 파이프라인: 일관된 처리를 위한 `_common_predict()` 메소드
+
+**주요 Essentia 컴포넌트**:
+- `TensorflowPredictMusiCNN`: MusiCNN 기반 모델용 (자동 태깅)
+- `TensorflowPredictVGGish`: VGGish 기반 모델용 (분류, 임베딩)
+- `TensorflowPredict2D`: 2D 예측 모델용
+- `MonoLoader`: 구성 가능한 샘플 레이트 (일반적으로 16kHz)로 오디오 로딩
+
+## 모델 사용 패턴
+
+1. **자동 태깅**: 오디오 로드 → MusiCNN으로 특징 추출 → 태그 활성화 획득
+2. **분류**: 오디오 로드 → VGGish 특징 추출 → 분류기 모델 적용
+3. **임베딩**: 오디오 로드 → 중간 모델 레이어에서 추출 → 다운스트림 작업 사용
+
+## 오디오 처리
+
+- 표준 샘플 레이트: 대부분 모델에서 16kHz
+- 오디오 로딩: 적절한 `sampleRate` 및 `resampleQuality` 매개변수를 가진 `MonoLoader` 사용
+- 모델은 특정 입력 형식 기대 (VGGish/MusiCNN용 mel-spectrograms)
 
 ## AudioClassifier 클래스
 
@@ -61,7 +100,8 @@ uv run main.py
 - `predict_dissonance()` - 불협화도/협화도 분석
 
 
-### 사용 예시
+## 사용 예시
+
 ```python
 from classifiers import AudioClassifier
 
@@ -80,3 +120,18 @@ fast_results = classifier.predict_all(
     exclude_methods=['predict_tempo', 'predict_dissonance']
 )
 ```
+
+## 개발 명령어
+
+```bash
+# 환경 설정
+uv sync                    # 의존성 설치
+uv run main.py            # 메인 스크립트 실행
+python main.py            # 직접 실행 (가상환경 내)
+```
+
+## 코드 스타일
+- **클래스**: PascalCase (AudioClassifier, FeatureExtractor)
+- **함수/변수**: snake_case (predict_danceability, audio_files)
+- **프라이빗 메소드**: 언더스코어 접두사 (_common_predict, _select_embeddings)
+- **아키텍처**: 모듈형 유틸리티를 가진 클래스 기반 설계
