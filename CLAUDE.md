@@ -13,7 +13,6 @@ This is an Essentia audio analysis project focused on music auto-tagging, classi
 - **Key dependencies**: 
   - `essentia>=2.1b6.dev1177` and `essentia-tensorflow>=2.1b6.dev1177` (core audio analysis)
   - `matplotlib>=3.7.5` (visualization)
-  - `pandas>=2.0.3` (data handling)
   - `polars[pyarrow]>=1.8.2` (high-performance data processing)
   - `rich>=14.1.0` (CLI output)
   - `ffmpeg-python>=0.2.0` (audio processing)
@@ -42,12 +41,6 @@ This is an Essentia audio analysis project focused on music auto-tagging, classi
 - `TensorflowPredict2D`: For 2D prediction models
 - `MonoLoader`: Audio loading with configurable sample rate (typically 16kHz)
 
-## Running Code
-
-- **Main script**: `uv run main.py` - processes audio files using AudioClassifier
-- **Direct execution**: `python main.py` (within virtual environment)
-- **Setup**: `uv sync` to install dependencies
-
 ## Model Usage Patterns
 
 1. **Auto-tagging**: Load audio → Extract features with MusiCNN → Get tag activations
@@ -70,10 +63,12 @@ python main.py            # Direct execution (in venv)
 ```
 
 ## Code Style
+
 - **Classes**: PascalCase (AudioClassifier, FeatureExtractor)
 - **Functions/Variables**: snake_case (predict_danceability, audio_files)
 - **Private methods**: Leading underscore (_common_predict, _select_embeddings)
 - **Architecture**: Class-based design with modular utilities
 
 ## Rules
+
 - always answer in Korean
