@@ -24,7 +24,7 @@ def process_single_audio_file(audio_file: str, output_dir: str, duration: int) -
 
     전처리 과정
     30, 45, 60초, 전구간 별 자를 것 -> dataframe 저장
-    
+
     Args:
         audio_file: 처리할 오디오 파일 경로
         output_dir: 출력 디렉토리 경로
@@ -42,7 +42,7 @@ def process_single_audio_file(audio_file: str, output_dir: str, duration: int) -
 def process_audio_chunk(audio_files: List[str], output_dir: str, duration: int) -> None:
     """
     오디오 파일 리스트를 청크 단위로 병렬 처리
-    
+
     Args:
         audio_files: 처리할 오디오 파일 경로 리스트
         output_dir: 출력 디렉토리 경로
@@ -62,7 +62,9 @@ def process_audio_chunk(audio_files: List[str], output_dir: str, duration: int) 
 
             # 모든 파일을 개별적으로 처리
             futures = [
-                executor.submit(process_single_audio_file, audio_file, output_dir, duration)
+                executor.submit(
+                    process_single_audio_file, audio_file, output_dir, duration
+                )
                 for audio_file in audio_files
             ]
 
@@ -87,7 +89,17 @@ def preprocess_single_file(audio_file: str) -> Dict[str, Union[str, float]]:
     audio_titme = Path(audio_file).name
 
     classifier = AudioClassifier(audio_file)
-    predict_results = classifier.predict_all(exclude_methods=["predict_jamendo_mood_and_theme"])
+    # predict_results = classifier.predict_all(exclude_methods=["predict_jamendo_mood_and_theme"])
+    predict_results = classifier.predict_selected(
+        include_methods=[
+            "predict_arousal_valence_deam_vggish",
+            "predict_arousal_valence_deam_musicnn",
+            "predict_arousal_valence_muse_vggish",
+            "predict_arousal_valence_muse_musicnn",
+            "predict_arousal_valence_emomusic_vggish",
+            "predict_arousal_valence_emomusic_musicnn",
+        ]
+    )
 
     results: Dict[str, Union[str, float]] = {
         "audio_title": audio_titme,
@@ -150,8 +162,8 @@ def process_audio_analysis(
 
 def preprocess_audio_files():
     audio_files: List = get_audio_files(
-            directory_path="audio/", is_path_form=True, extensions=[".mp3"]
-        )
+        directory_path="audio/", is_path_form=True, extensions=[".mp3"]
+    )
 
     # 오디오 파일 자르기 (전처리)
     process_audio_chunk(audio_files=audio_files, output_dir="audio_45sec/", duration=45)
@@ -163,10 +175,10 @@ def main():
 
     try:
         audio_files: List = get_audio_files(
-            "audio_45sec/", is_path_form=True, extensions=[".mp3"]
+            "audio_30sec/", is_path_form=True, extensions=[".mp3"]
         )
 
-        csv_file_path = "output/audio_analysis_45sec_results.csv"
+        csv_file_path = "output/audio_analysis_30sec_arousal_valence.csv"
 
         # output 디렉토리가 없으면 생성
         output_dir = Path(csv_file_path).parent
@@ -183,7 +195,7 @@ def main():
             is_first_chunk = True
 
         # 청크 나누기
-        chunk_size = 50
+        chunk_size = 100
         file_chunks = chunk_list(audio_files, chunk_size)
         total_chunks = len(file_chunks)
 
@@ -199,19 +211,25 @@ def main():
                 if analysis_results:
                     # 새로운 분석 결과를 DataFrame으로 생성
                     new_df = pl.DataFrame(analysis_results)
-                    
+
                     # 한글 텍스트 컬럼들을 NFC 형태로 정규화 (Mac-Windows 호환성)
-                    new_df = new_df.with_columns([
-                        pl.col("audio_title").map_elements(
-                            lambda x: unicodedata.normalize("NFC", x) if isinstance(x, str) else x,
-                            return_dtype=pl.Utf8
-                        )
-                    ])
-                    
+                    new_df = new_df.with_columns(
+                        [
+                            pl.col("audio_title").map_elements(
+                                lambda x: unicodedata.normalize("NFC", x)
+                                if isinstance(x, str)
+                                else x,
+                                return_dtype=pl.Utf8,
+                            )
+                        ]
+                    )
+
                     # CSV 저장/upsert 로직
                     if is_first_chunk:
                         # 첫 번째 청크: 새 파일 생성 (헤더 포함)
-                        with open(csv_file_path, "w", encoding="utf-8", newline="") as f:
+                        with open(
+                            csv_file_path, "w", encoding="utf-8", newline=""
+                        ) as f:
                             new_df.write_csv(f, include_bom=True)
                         print(f"첫 번째 청크 결과를 {csv_file_path}에 저장했습니다.")
                         is_first_chunk = False  # 이후 모든 청크는 upsert 모드
@@ -219,50 +237,61 @@ def main():
                         # 기존 CSV 파일 읽기
                         try:
                             existing_df = pl.read_csv(csv_file_path, encoding="utf-8")
-                            
+
                             # 기존 데이터도 NFC 형태로 정규화 (Mac-Windows 호환성)
-                            existing_df = existing_df.with_columns([
-                                pl.col("audio_title").map_elements(
-                                    lambda x: unicodedata.normalize("NFC", x) if isinstance(x, str) else x,
-                                    return_dtype=pl.Utf8
-                                )
-                            ])
-                            
+                            existing_df = existing_df.with_columns(
+                                [
+                                    pl.col("audio_title").map_elements(
+                                        lambda x: unicodedata.normalize("NFC", x)
+                                        if isinstance(x, str)
+                                        else x,
+                                        return_dtype=pl.Utf8,
+                                    )
+                                ]
+                            )
+
                             # 1. 기존 데이터에서 새로운 데이터와 겹치지 않는 항목만 유지
                             updated_df = existing_df.join(
-                                new_df.select("audio_title"), 
-                                on="audio_title", 
-                                how="anti"  # 새 데이터에 없는 기존 항목만 유지
+                                new_df.select("audio_title"),
+                                on="audio_title",
+                                how="anti",  # 새 데이터에 없는 기존 항목만 유지
                             )
-                            
+
                             # 2. 기존 데이터와 새 데이터 결합 (새 데이터가 우선)
                             final_df = pl.concat([updated_df, new_df], how="vertical")
-                            
+
                             # 3. audio_title로 정렬하여 일관성 유지
                             final_df = final_df.sort("audio_title")
-                            
+
                             # 4. 결과를 CSV 파일에 저장 (덮어쓰기)
-                            with open(csv_file_path, "w", encoding="utf-8", newline="") as f:
+                            with open(
+                                csv_file_path, "w", encoding="utf-8", newline=""
+                            ) as f:
                                 final_df.write_csv(f, include_bom=True)
                             print(
                                 f"청크 {chunk_idx + 1} 결과를 {csv_file_path}에 upsert했습니다. "
                                 f"(신규: {len(new_df)}개, 전체: {len(final_df)}개)"
                             )
-                            
+
                         except Exception as e:
                             print(f"기존 CSV 파일 읽기 실패: {e}")
                             print("새로운 데이터만 추가합니다.")
                             # 기존 파일 읽기 실패 시 append 모드로 처리
-                            with open(csv_file_path, "a", encoding="utf-8", newline="") as f:
-                                new_df.write_csv(f,include_bom=True, include_header=False)
-                            print(f"청크 {chunk_idx + 1} 결과를 {csv_file_path}에 추가했습니다.")
+                            with open(
+                                csv_file_path, "a", encoding="utf-8", newline=""
+                            ) as f:
+                                new_df.write_csv(
+                                    f, include_bom=True, include_header=False
+                                )
+                            print(
+                                f"청크 {chunk_idx + 1} 결과를 {csv_file_path}에 추가했습니다."
+                            )
 
                     print(
                         f"청크 {chunk_idx + 1} 완료: {len(analysis_results)}개 파일 처리됨"
                     )
                 else:
                     print(f"청크 {chunk_idx + 1}에서 분석 결과가 없습니다.")
-                
 
             except KeyboardInterrupt:
                 print("\n프로그램이 사용자에 의해 중단되었습니다.")
@@ -276,15 +305,19 @@ def main():
         # 최종 결과 확인
         try:
             final_df = pl.read_csv(csv_file_path, encoding="utf-8")
-            
+
             # 최종 결과도 NFC 형태로 정규화 확인 (Mac-Windows 호환성)
-            final_df = final_df.with_columns([
-                pl.col("audio_title").map_elements(
-                    lambda x: unicodedata.normalize("NFC", x) if isinstance(x, str) else x,
-                    return_dtype=pl.Utf8
-                )
-            ])
-            
+            final_df = final_df.with_columns(
+                [
+                    pl.col("audio_title").map_elements(
+                        lambda x: unicodedata.normalize("NFC", x)
+                        if isinstance(x, str)
+                        else x,
+                        return_dtype=pl.Utf8,
+                    )
+                ]
+            )
+
             print(f"\n=== 최종 결과 ===")
             print(f"총 처리된 파일 수: {len(final_df)}")
             print(f"CSV 파일 저장 위치: {csv_file_path}")

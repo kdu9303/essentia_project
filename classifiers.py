@@ -318,24 +318,44 @@ class AudioClassifier(FeatureExtractor):
         """
         return self._common_predict(json_file="tonal_atonal-audioset-vggish-1.json")
 
-    def predict_arousal_valence_deam(self) -> Dict[str, float]:
+    def predict_arousal_valence_deam_vggish(self) -> Dict[str, float]:
         """
         DEAM (Database for Emotion Analysis using Music) 데이터셋으로 학습된 모델.
         1,802개 음악에 대해 연속적으로 주석된 감정가(valence)와 각성도(arousal) 값을
         기반으로 VGGish 임베딩을 통해 음악의 감정적 특성을 예측.
         """
         return self._common_predict(
-            json_file="deam-audioset-vggish-2.json", label_prefix="deam_"
+            json_file="deam-audioset-vggish-2.json", label_prefix="deam_vggish_"
         )
 
-    def predict_arousal_valence_muse(self) -> Dict[str, float]:
+    def predict_arousal_valence_deam_musicnn(self) -> Dict[str, float]:
+        return self._common_predict(
+            json_file="deam-msd-musicnn-2.json", label_prefix="deam_musicnn_"
+        )
+
+    def predict_arousal_valence_muse_vggish(self) -> Dict[str, float]:
         """
         MuSe (Multimodal Sentiment Analysis in Real-life Media) 데이터셋으로 학습된 모델.
         스트레스 상황에서의 감정 표현과 생리적 반응을 분석하여 각성도(arousal)와
         감정가(valence)를 예측. 실제 환경에서의 멀티모달 감정 인식에 특화됨.
         """
         return self._common_predict(
-            json_file="muse-audioset-vggish-2.json", label_prefix="muse_"
+            json_file="muse-audioset-vggish-2.json", label_prefix="muse_vggish_"
+        )
+
+    def predict_arousal_valence_muse_musicnn(self) -> Dict[str, float]:
+        return self._common_predict(
+            json_file="muse-msd-musicnn-2.json", label_prefix="muse_musicnn_"
+        )
+
+    def predict_arousal_valence_emomusic_vggish(self) -> Dict[str, float]:
+        return self._common_predict(
+            json_file="emomusic-audioset-vggish-2.json", label_prefix="emomusic_vggish_"
+        )
+
+    def predict_arousal_valence_emomusic_musicnn(self) -> Dict[str, float]:
+        return self._common_predict(
+            json_file="emomusic-msd-musicnn-2.json", label_prefix="emomusic_musicnn_"
         )
 
     def predict_tempo(self) -> Dict[str, float]:
@@ -449,8 +469,10 @@ class AudioClassifier(FeatureExtractor):
             if method.startswith("predict_") and callable(getattr(self, method))
         ]
 
-        # predict_all 자신은 제외
-        predict_methods = [m for m in predict_methods if m != "predict_all"]
+        # predict_all, predict_selected는 제외
+        predict_methods = [
+            m for m in predict_methods if m not in ["predict_all", "predict_selected"]
+        ]
 
         # 제외할 메서드 필터링
         if exclude_methods:
@@ -460,6 +482,51 @@ class AudioClassifier(FeatureExtractor):
         total_methods = len(predict_methods)
 
         for i, method_name in enumerate(predict_methods, 1):
+            try:
+                print(f"[{i}/{total_methods}] 실행 중: {method_name}")
+                method = getattr(self, method_name)
+                result = method()
+                results.update(result)  # 딕셔너리 병합
+            except Exception as e:
+                print(f"{method_name} 실행 실패: {e}")
+                continue
+
+        print(f"총 {len(results)}개 예측 결과 생성 완료")
+        return results
+
+    def predict_selected(self, include_methods: List[str]) -> Dict[str, float]:
+        """
+        선택한 predict 함수의 결과를 하나의 dictionary로 병합
+        :param include_methods: 포함할 메서드 이름 리스트 (예: ['predict_tempo', 'predict_dissonance'])
+        :return: 선택한 예측 결과가 병합된 딕셔너리
+        """
+
+        # 모든 predict_ 메서드 자동 검색
+        all_predict_methods = [
+            method
+            for method in dir(self)
+            if method.startswith("predict_") and callable(getattr(self, method))
+        ]
+
+        # predict_all과 predict_selected는 제외
+        all_predict_methods = [
+            m
+            for m in all_predict_methods
+            if m not in ["predict_all", "predict_selected"]
+        ]
+
+        # 유효한 메서드만 필터링 (존재하는 메서드만)
+        valid_methods = [m for m in include_methods if m in all_predict_methods]
+
+        # 유효하지 않은 메서드가 있으면 경고
+        invalid_methods = [m for m in include_methods if m not in all_predict_methods]
+        if invalid_methods:
+            print(f"경고: 존재하지 않는 메서드 - {invalid_methods}")
+
+        results = {}
+        total_methods = len(valid_methods)
+
+        for i, method_name in enumerate(valid_methods, 1):
             try:
                 print(f"[{i}/{total_methods}] 실행 중: {method_name}")
                 method = getattr(self, method_name)
